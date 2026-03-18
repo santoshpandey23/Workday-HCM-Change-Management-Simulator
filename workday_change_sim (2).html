@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HCM Change Strategy Simulator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --blue-10: #EDF5FF;
+  --blue-20: #D0E2FF;
+  --blue-40: #78A9FF;
+  --blue-60: #0F62FE;
+  --blue-70: #0043CE;
+  --blue-80: #002D9C;
+  --blue-90: #001D6C;
+  --blue-100: #001141;
+  --gray-10: #F4F4F4;
+  --gray-20: #E0E0E0;
+  --gray-30: #C6C6C6;
+  --gray-50: #8D8D8D;
+  --gray-70: #525252;
+  --gray-90: #262626;
+  --gray-100: #161616;
+  --red-50: #FA4D56;
+  --red-60: #DA1E28;
+  --yellow-30: #F1C21B;
+  --green-40: #42BE65;
+  --green-60: #198038;
+  --bg: #F4F6F8;
+  --card-bg: #FFFFFF;
+  --border: #E0E0E0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg);
+  color: var(--gray-100);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: var(--blue-90);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-logo .app-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.sidebar-logo .app-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 0;
+  overflow-y: auto;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 16px 20px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.65);
+  font-size: 13.5px;
+  font-weight: 400;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+  user-select: none;
+}
+
+.nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.nav-item.active {
+  background: rgba(15,98,254,0.25);
+  color: #fff;
+  border-left-color: var(--blue-40);
+  font-weight: 500;
+}
+
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+/* MAIN */
+.main {
+  margin-left: 240px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-100);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+
+.kpi-strip {
+  background: var(--blue-80);
+  padding: 16px 28px;
+  display: flex;
+  gap: 32px;
+}
+
+.kpi-item { display: flex; flex-direction: column; gap: 2px; }
+.kpi-label { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; }
+.kpi-value { font-size: 22px; font-weight: 700; color: #fff; font-family: 'IBM Plex Mono', monospace; }
+.kpi-sub { font-size: 11px; color: rgba(255,255,255,0.45); }
+
+.content-area {
+  padding: 28px;
+  flex: 1;
+}
+
+/* CARDS */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-100);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.section-grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+/* TABS */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.tab-btn {
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-70);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.tab-btn:hover { color: var(--blue-60); }
+.tab-btn.active { color: var(--blue-60); border-bottom-color: var(--blue-60); }
+
+/* MODULE CARDS */
+.module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+
+.module-card {
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--card-bg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.module-card:hover { border-color: var(--blue-40); background: var(--blue-10); }
+.module-card.active { border-color: var(--blue-60); background: var(--blue-10); }
+.module-card .mod-icon { font-size: 18px; }
+.module-card .mod-name { font-size: 13px; font-weight: 500; color: var(--gray-100); }
+.module-card .mod-count { font-size: 11px; color: var(--gray-50); }
+
+/* EXAMPLE CARDS */
+.example-cards { display: flex; flex-direction: column; gap: 10px; }
+
+.example-card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all 0.15s;
+}
+
+.example-card:hover { box-shadow: var(--shadow); }
+
+.example-card-content { flex: 1; }
+.example-card-title { font-size: 13px; font-weight: 600; color: var(--gray-100); margin-bottom: 4px; }
+.example-card-states { font-size: 12px; color: var(--gray-70); line-height: 1.5; }
+.example-card-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+.tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.tag-blue { background: var(--blue-10); color: var(--blue-70); }
+.tag-red { background: #FFF1F1; color: var(--red-60); }
+.tag-yellow { background: #FFF8E1; color: #8A6914; }
+.tag-green { background: #DEFBE6; color: var(--green-60); }
+.tag-gray { background: var(--gray-10); color: var(--gray-70); }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: 2px;
+  user-select: none;
+}
+
+.btn-primary { background: var(--blue-60); color: #fff; }
+.btn-primary:hover { background: var(--blue-70); }
+.btn-ghost { background: transparent; border: 1px solid var(--blue-60); color: var(--blue-60); }
+.btn-ghost:hover { background: var(--blue-10); }
+.btn-danger { background: transparent; border: 1px solid var(--red-60); color: var(--red-60); }
+.btn-danger:hover { background: #FFF1F1; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* TABLE */
+.data-table-wrap { overflow-x: auto; }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.data-table thead th {
+  background: var(--gray-10);
+  color: var(--gray-70);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--gray-10);
+  transition: background 0.1s;
+}
+
+.data-table tbody tr:hover { background: var(--blue-10); }
+
+.data-table tbody td {
+  padding: 10px 12px;
+  color: var(--gray-100);
+  vertical-align: top;
+}
+
+.score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.score-1 { background: #DEFBE6; color: #0E6027; }
+.score-2 { background: #D0E2FF; color: var(--blue-80); }
+.score-3 { background: #FFF8E1; color: #6D4F17; }
+.score-4 { background: #FFE8D6; color: #9A3412; }
+.score-5 { background: #FFD6D9; color: var(--red-60); }
+
+.risk-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.risk-low { background: #DEFBE6; color: var(--green-60); }
+.risk-medium { background: #FFF8E1; color: #8A6914; }
+.risk-high { background: #FFD6D9; color: var(--red-60); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal {
+  background: var(--card-bg);
+  border-radius: 4px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* FORM */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray-70);
+  margin-bottom: 6px;
+}
+
+.form-label .tooltip-icon { cursor: help; font-size: 13px; margin-left: 4px; }
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  border: 1px solid var(--gray-30);
+  border-radius: 2px;
+  background: var(--card-bg);
+  color: var(--gray-100);
+  transition: border-color 0.15s;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--blue-60);
+  box-shadow: 0 0 0 2px rgba(15,98,254,0.15);
+}
+
+.form-textarea { resize: vertical; min-height: 72px; }
+
+.score-slider-wrap { display: flex; flex-direction: column; gap: 4px; }
+.score-slider-row { display: flex; align-items: center; gap: 10px; }
+.score-slider { flex: 1; accent-color: var(--blue-60); }
+.score-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-60);
+  min-width: 28px;
+  text-align: center;
+}
+
+.score-desc { font-size: 11px; color: var(--gray-50); font-style: italic; }
+
+.tooltip-box {
+  background: var(--gray-90);
+  color: #fff;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 3px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* WEIGHTS PANEL */
+.weights-panel {
+  background: var(--blue-10);
+  border: 1px solid var(--blue-20);
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.weights-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-80);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.weights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.weight-item { display: flex; flex-direction: column; gap: 4px; }
+.weight-label { font-size: 11px; font-weight: 500; color: var(--gray-70); display: flex; justify-content: space-between; }
+.weight-pct { font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: var(--blue-60); }
+.weight-slider { accent-color: var(--blue-60); width: 100%; }
+
+.total-weight { margin-top: 10px; font-size: 12px; font-weight: 600; }
+.total-ok { color: var(--green-60); }
+.total-err { color: var(--red-60); }
+
+/* INSIGHTS */
+.insight-box {
+  background: var(--blue-10);
+  border-left: 3px solid var(--blue-60);
+  padding: 10px 14px;
+  border-radius: 0 4px 4px 0;
+  font-size: 12.5px;
+  color: var(--gray-100);
+  margin-bottom: 8px;
+  line-height: 1.55;
+}
+
+.warn-box {
+  background: #FFF8E1;
+  border-left: 3px solid var(--yellow-30);
+  padding: 10px 14px;
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+  color: #6D4F17;
+}
+
+/* PERSONA CARDS */
+.persona-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+.persona-card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  background: var(--card-bg);
+}
+
+.persona-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.persona-icon { font-size: 20px; }
+.persona-name { font-size: 13px; font-weight: 600; }
+.persona-risk-score { font-size: 28px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+
+.risk-bar { height: 4px; border-radius: 2px; background: var(--gray-20); margin: 8px 0; overflow: hidden; }
+.risk-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+.risk-bar-low { background: var(--green-40); }
+.risk-bar-med { background: var(--yellow-30); }
+.risk-bar-high { background: var(--red-50); }
+
+.persona-actions { margin-top: 10px; }
+.action-item { font-size: 11.5px; color: var(--gray-70); padding: 3px 0; border-bottom: 1px dashed var(--gray-20); }
+
+/* TRAINING */
+.training-grid { display: grid; gap: 14px; }
+
+.training-row {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.training-persona { font-size: 13px; font-weight: 600; }
+.training-method {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.method-pill {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.method-video { background: var(--blue-10); color: var(--blue-70); }
+.method-guided { background: #FFF8E1; color: #6D4F17; }
+.method-sim { background: #FFD6D9; color: var(--red-60); }
+.method-workshop { background: #DEFBE6; color: var(--green-60); }
+
+/* DASHBOARD */
+.dash-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+
+.dash-kpi {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  text-align: center;
+}
+
+.dash-kpi-num {
+  font-size: 32px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--blue-60);
+}
+
+.dash-kpi-label { font-size: 11px; color: var(--gray-50); margin-top: 4px; }
+
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* HEATMAP */
+.heatmap-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.heatmap-row { display: flex; align-items: center; gap: 6px; }
+.heatmap-label { width: 160px; font-size: 11.5px; font-weight: 500; color: var(--gray-70); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.heatmap-bar { flex: 1; height: 20px; border-radius: 2px; transition: width 0.4s; }
+
+/* PERSONA CHECKBOXES */
+.persona-checks { display: flex; gap: 12px; flex-wrap: wrap; }
+.persona-check { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.persona-check input { accent-color: var(--blue-60); }
+.persona-check-label { font-size: 13px; }
+
+/* EMPTY STATE */
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  color: var(--gray-50);
+}
+
+.empty-icon { font-size: 32px; margin-bottom: 12px; }
+.empty-text { font-size: 13px; }
+
+/* FILTER ROW */
+.filter-row { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.filter-select { padding: 6px 10px; font-size: 12px; border: 1px solid var(--gray-30); border-radius: 2px; font-family: 'IBM Plex Sans', sans-serif; background: var(--card-bg); }
+
+/* STATUS */
+.status-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.status-active { background: var(--blue-10); color: var(--blue-70); }
+.status-review { background: #FFF8E1; color: #8A6914; }
+.status-done { background: #DEFBE6; color: var(--green-60); }
+
+/* ACTIONS CELL */
+.actions-cell { display: flex; gap: 4px; white-space: nowrap; }
+
+/* TOOLTIP CUSTOM */
+[data-tip] { position: relative; }
+[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gray-100);
+  color: #fff;
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 3px;
+  white-space: nowrap;
+  z-index: 999;
+  max-width: 240px;
+  white-space: normal;
+  text-align: center;
+  font-weight: 400;
+}
+
+.hidden { display: none !important; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--gray-70);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.intervention-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.intervention-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+}
+
+.int-persona { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--gray-50); margin-bottom: 6px; }
+.int-risk-level { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+.int-actions { display: flex; flex-direction: column; gap: 5px; }
+.int-action-item { font-size: 12px; color: var(--gray-70); display: flex; align-items: flex-start; gap: 6px; }
+.int-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--blue-60); margin-top: 6px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="app-name">Change Simulator</div>
+    <div class="app-sub">HCM Transformation</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Explore</div>
+    <div class="nav-item active" onclick="navigate('library')" id="nav-library">
+      <span class="nav-icon">📦</span> Module Library
+    </div>
+    <div class="nav-section-label">Assess</div>
+    <div class="nav-item" onclick="navigate('impact')" id="nav-impact">
+      <span class="nav-icon">📋</span> Impact Assessment
+    </div>
+    <div class="nav-item" onclick="navigate('heatmap')" id="nav-heatmap">
+      <span class="nav-icon">🗺️</span> Change Heatmap
+    </div>
+    <div class="nav-section-label">Strategize</div>
+    <div class="nav-item" onclick="navigate('stakeholder')" id="nav-stakeholder">
+      <span class="nav-icon">👥</span> Stakeholder Risk
+    </div>
+    <div class="nav-item" onclick="navigate('strategy')" id="nav-strategy">
+      <span class="nav-icon">🧭</span> Adoption Strategy
+    </div>
+    <div class="nav-item" onclick="navigate('training')" id="nav-training">
+      <span class="nav-icon">🎓</span> Training Plan
+    </div>
+    <div class="nav-section-label">Outcome</div>
+    <div class="nav-item" onclick="navigate('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Module Library</div>
+    <div class="topbar-right">
+      <span id="autosave-indicator" style="font-size:11px; color:var(--gray-50); display:flex; align-items:center; gap:4px;">
+        <span id="autosave-dot" style="width:7px;height:7px;border-radius:50%;background:var(--gray-30);display:inline-block;"></span>
+        <span id="autosave-text">No saved data</span>
+      </span>
+      <button class="btn btn-ghost btn-sm" onclick="exportSession()">⬇ Export</button>
+      <button class="btn btn-ghost btn-sm" onclick="saveSession()">💾 Backup</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadSessionBtn()">📂 Restore</button>
+      <button class="btn btn-danger btn-sm" onclick="clearStorage()" title="Clear all saved browser data and reset to defaults">🗑 Reset</button>
+      <input type="file" id="loadFile" accept=".json" style="display:none" onchange="loadSession(event)">
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi-item">
+      <div class="kpi-label">Total Changes</div>
+      <div class="kpi-value" id="kpi-total">0</div>
+      <div class="kpi-sub">In assessment</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">High Impact</div>
+      <div class="kpi-value" id="kpi-high">0</div>
+      <div class="kpi-sub">Changes</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">Avg Impact Score</div>
+      <div class="kpi-value" id="kpi-avg">—</div>
+      <div class="kpi-sub">Across all modules</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">Highest Risk Persona</div>
+      <div class="kpi-value" id="kpi-persona" style="font-size:15px; padding-top:5px;">—</div>
+      <div class="kpi-sub">Requires focus</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">Modules Covered</div>
+      <div class="kpi-value" id="kpi-modules">0</div>
+      <div class="kpi-sub">In scope</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content-area">
+
+    <!-- PAGE: LIBRARY -->
+    <div id="page-library" class="page active">
+      <div class="section-title">Workday Scenario Library</div>
+      <div class="module-grid" id="module-filter-grid"></div>
+      <div id="example-cards-area"></div>
+    </div>
+
+    <!-- PAGE: IMPACT ASSESSMENT -->
+    <div id="page-impact" class="page">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div class="section-title" style="margin:0; border:0; padding:0">Master Impact Assessment</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add Change</button>
+        </div>
+      </div>
+
+      <!-- WEIGHTS PANEL -->
+      <div class="weights-panel">
+        <div class="weights-title">⚙️ Model Weights — Impact Score Calculation</div>
+        <div class="weights-grid">
+          <div class="weight-item">
+            <div class="weight-label">Process Change <span class="weight-pct" id="w-process-pct">30%</span></div>
+            <input type="range" class="weight-slider" id="w-process" min="5" max="60" value="30" oninput="updateWeights()">
+          </div>
+          <div class="weight-item">
+            <div class="weight-label">Role Change <span class="weight-pct" id="w-role-pct">30%</span></div>
+            <input type="range" class="weight-slider" id="w-role" min="5" max="60" value="30" oninput="updateWeights()">
+          </div>
+          <div class="weight-item">
+            <div class="weight-label">Mindset Shift <span class="weight-pct" id="w-mindset-pct">20%</span></div>
+            <input type="range" class="weight-slider" id="w-mindset" min="5" max="60" value="20" oninput="updateWeights()">
+          </div>
+          <div class="weight-item">
+            <div class="weight-label">Technology Impact <span class="weight-pct" id="w-tech-pct">20%</span></div>
+            <input type="range" class="weight-slider" id="w-tech" min="5" max="60" value="20" oninput="updateWeights()">
+          </div>
+        </div>
+        <div class="total-weight" id="weights-total">Total: 100% ✓</div>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="filter-row">
+        <select class="filter-select" id="filter-module" onchange="renderTable()">
+          <option value="">All Modules</option>
+          <option>Core HCM</option><option>Recruiting</option><option>Talent & Performance</option>
+          <option>Compensation</option><option>Learning</option><option>Benefits & Absence</option><option>Payroll & Time</option>
+        </select>
+        <select class="filter-select" id="filter-risk" onchange="renderTable()">
+          <option value="">All Risk Levels</option>
+          <option>Low</option><option>Medium</option><option>High</option>
+        </select>
+        <select class="filter-select" id="filter-persona" onchange="renderTable()">
+          <option value="">All Personas</option>
+          <option>Employee</option><option>Manager</option><option>HR</option>
+        </select>
+      </div>
+
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div class="data-table-wrap">
+          <table class="data-table" id="impact-table">
+            <thead>
+              <tr>
+                <th>Module</th>
+                <th>Change Title</th>
+                <th>Personas</th>
+                <th title="Process Change Score">PC</th>
+                <th title="Role Change Score">RC</th>
+                <th title="Mindset Shift Score">MS</th>
+                <th title="Technology Impact Score">TI</th>
+                <th>Impact</th>
+                <th>Risk</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="impact-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: HEATMAP -->
+    <div id="page-heatmap" class="page">
+      <div class="section-title">Change Impact Heatmap</div>
+      <div class="section-grid grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Impact by Module</div></div>
+          <canvas id="chart-module-impact" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Risk Distribution</div></div>
+          <canvas id="chart-risk-dist" height="220"></canvas>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header"><div class="card-title">Process-Level Heatmap</div></div>
+        <div id="heatmap-bars"></div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header"><div class="card-title">Key Insights</div></div>
+        <div id="heatmap-insights"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: STAKEHOLDER -->
+    <div id="page-stakeholder" class="page">
+      <div class="section-title">Stakeholder & Persona Risk</div>
+      <div class="persona-grid" id="persona-cards"></div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header"><div class="card-title">Risk Radar</div></div>
+        <canvas id="chart-radar" height="260"></canvas>
+      </div>
+    </div>
+
+    <!-- PAGE: STRATEGY -->
+    <div id="page-strategy" class="page">
+      <div class="section-title">Adoption Strategy Builder</div>
+      <div id="strategy-insights" style="margin-bottom:16px;"></div>
+      <div class="intervention-grid" id="intervention-grid"></div>
+    </div>
+
+    <!-- PAGE: TRAINING -->
+    <div id="page-training" class="page">
+      <div class="section-title">Training & Enablement Plan</div>
+      <div class="training-grid" id="training-rows"></div>
+    </div>
+
+    <!-- PAGE: DASHBOARD -->
+    <div id="page-dashboard" class="page">
+      <div class="section-title">Program Dashboard</div>
+      <div class="dash-kpi-grid" id="dash-kpis"></div>
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Dimension Breakdown</div></div>
+          <canvas id="chart-dimensions" height="220"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Module Risk Profile</div></div>
+          <canvas id="chart-module-risk" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Add Change Item</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-grid grid-2">
+        <div class="form-group">
+          <label class="form-label">Module</label>
+          <select class="form-select" id="f-module">
+            <option>Core HCM</option><option>Recruiting</option><option>Talent & Performance</option>
+            <option>Compensation</option><option>Learning</option><option>Benefits & Absence</option><option>Payroll & Time</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Process Area</label>
+          <input class="form-input" id="f-process-area" placeholder="e.g. Self-service transactions">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Change Title</label>
+        <input class="form-input" id="f-title" placeholder="Short, descriptive title">
+      </div>
+      <div class="section-grid grid-2">
+        <div class="form-group">
+          <label class="form-label">Current State</label>
+          <textarea class="form-textarea" id="f-current" placeholder="How it works today..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Future State</label>
+          <textarea class="form-textarea" id="f-future" placeholder="How it will work after Workday..."></textarea>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Impacted Personas</label>
+        <div class="persona-checks">
+          <label class="persona-check"><input type="checkbox" id="f-emp" checked><span class="persona-check-label">👤 Employee</span></label>
+          <label class="persona-check"><input type="checkbox" id="f-mgr" checked><span class="persona-check-label">👔 Manager</span></label>
+          <label class="persona-check"><input type="checkbox" id="f-hr"><span class="persona-check-label">🏢 HR</span></label>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <!-- Process Change -->
+        <div class="form-group">
+          <label class="form-label">
+            Process Change
+            <span class="tooltip-icon" data-tip="1=Minimal process change. 5=Completely new process with no resemblance to current.">ℹ️</span>
+          </label>
+          <div class="score-slider-wrap">
+            <div class="score-slider-row">
+              <input type="range" class="score-slider" id="f-pc" min="1" max="5" value="3" oninput="updateSliderDesc('pc')">
+              <div class="score-val" id="f-pc-val">3</div>
+            </div>
+            <div class="score-desc" id="f-pc-desc">Moderate redesign — steps removed or added</div>
+          </div>
+        </div>
+        <!-- Role Change -->
+        <div class="form-group">
+          <label class="form-label">
+            Role Change
+            <span class="tooltip-icon" data-tip="1=No role change. 5=Completely new role expectations and ownership model.">ℹ️</span>
+          </label>
+          <div class="score-slider-wrap">
+            <div class="score-slider-row">
+              <input type="range" class="score-slider" id="f-rc" min="1" max="5" value="3" oninput="updateSliderDesc('rc')">
+              <div class="score-val" id="f-rc-val">3</div>
+            </div>
+            <div class="score-desc" id="f-rc-desc">Some tasks move across roles (e.g. HR → Manager)</div>
+          </div>
+        </div>
+        <!-- Mindset Shift -->
+        <div class="form-group">
+          <label class="form-label">
+            Mindset Shift
+            <span class="tooltip-icon" data-tip="1=No mindset change. 5=Fundamental behavioral shift, e.g. from HR-driven to manager-owned decisions.">ℹ️</span>
+          </label>
+          <div class="score-slider-wrap">
+            <div class="score-slider-row">
+              <input type="range" class="score-slider" id="f-ms" min="1" max="5" value="3" oninput="updateSliderDesc('ms')">
+              <div class="score-val" id="f-ms-val">3</div>
+            </div>
+            <div class="score-desc" id="f-ms-desc">Moderate shift — new expectations introduced</div>
+          </div>
+        </div>
+        <!-- Technology Impact -->
+        <div class="form-group">
+          <label class="form-label">
+            Technology & Digital Work Impact
+            <span class="tooltip-icon" data-tip="1=Basic UI/platform change. 5=AI/agentic work redesign that fundamentally changes how work is performed.">ℹ️</span>
+          </label>
+          <div class="score-slider-wrap">
+            <div class="score-slider-row">
+              <input type="range" class="score-slider" id="f-ti" min="1" max="5" value="3" oninput="updateSliderDesc('ti')">
+              <div class="score-val" id="f-ti-val">3</div>
+            </div>
+            <div class="score-desc" id="f-ti-desc">Connected digital enablement — unified data access</div>
+          </div>
+        </div>
+      </div>
+      <div class="section-grid grid-2">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="f-status">
+            <option>Active</option><option>Under Review</option><option>Done</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Owner</label>
+          <input class="form-input" id="f-owner" placeholder="Name or team">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="f-notes" placeholder="Additional context..."></textarea>
+      </div>
+      <div id="score-warning" class="warn-box hidden" style="margin-top:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRow()">Save Change</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA: SEED EXAMPLES
+// ============================================================
+const MODULES = [
+  { id:'core', name:'Core HCM', icon:'🏛️' },
+  { id:'recruiting', name:'Recruiting', icon:'🔍' },
+  { id:'talent', name:'Talent & Performance', icon:'⭐' },
+  { id:'compensation', name:'Compensation', icon:'💰' },
+  { id:'learning', name:'Learning', icon:'📚' },
+  { id:'benefits', name:'Benefits & Absence', icon:'🏥' },
+  { id:'payroll', name:'Payroll & Time', icon:'⏱️' }
+];
+
+const SEED_DATA = [
+  // CORE HCM
+  { module:'Core HCM', process_area:'Self-Service', change_title:'Employee data changes move to self-service', current_state:'HR operations updates personal details and job data through tickets or forms.', future_state:'Employees and managers complete eligible changes directly in Workday through guided workflows.', emp:true, mgr:true, hr:true, pc:3, rc:4, ms:4, ti:2, owner:'HR Ops', status:'Active', notes:'High visibility change for all employees', seed:true },
+  { module:'Core HCM', process_area:'Org Structure', change_title:'Organisation structures become standardised', current_state:'Different business units maintain inconsistent org structures, job titles, and supervisory hierarchies.', future_state:'Workday becomes the system of record for standardised supervisory organisations, job profiles, and position governance.', emp:false, mgr:true, hr:true, pc:4, rc:3, ms:3, ti:2, owner:'HR Strategy', status:'Active', notes:'Requires governance decision up front', seed:true },
+  { module:'Core HCM', process_area:'Transactions', change_title:'Manager transactions shift from HR-led to manager-led', current_state:'HR initiates transfers, promotions, location changes, and manager changes.', future_state:'Managers initiate and track these transactions in Workday with approval workflows.', emp:false, mgr:true, hr:true, pc:4, rc:5, ms:5, ti:3, owner:'HR BP', status:'Active', notes:'Biggest manager ownership shift', seed:true },
+  { module:'Core HCM', process_area:'Data Visibility', change_title:'Data visibility becomes more transparent', current_state:'Workforce data is fragmented across HR files, local trackers, and manager spreadsheets.', future_state:'Leaders and HR access real-time workforce information in a single system.', emp:false, mgr:true, hr:true, pc:2, rc:2, ms:3, ti:3, owner:'Analytics', status:'Active', notes:'', seed:true },
+  { module:'Core HCM', process_area:'HR Operations', change_title:'HR shifts from transaction processing to exception management', current_state:'HR manually processes routine transactions.', future_state:'HR focuses more on governance, data quality, escalations, and advisory support while routine activity moves into workflow.', emp:false, mgr:false, hr:true, pc:4, rc:5, ms:5, ti:3, owner:'HRSSC', status:'Active', notes:'Operating model shift for HR', seed:true },
+
+  // RECRUITING
+  { module:'Recruiting', process_area:'Requisitions', change_title:'Requisition approvals move into standardised workflows', current_state:'Hiring approvals happen via email or offline sign-off.', future_state:'Requisitions are routed through Workday approval workflows with visibility into status and bottlenecks.', emp:false, mgr:true, hr:true, pc:4, rc:3, ms:3, ti:2, owner:'Talent Acquisition', status:'Active', notes:'', seed:true },
+  { module:'Recruiting', process_area:'Candidate Tracking', change_title:'Candidate pipeline visibility improves for recruiters and hiring managers', current_state:'Candidate tracking lives in spreadsheets, email threads, or separate ATS tools.', future_state:'Hiring managers and recruiters view candidate stage, feedback, and requisition progress in one place.', emp:false, mgr:true, hr:true, pc:3, rc:2, ms:2, ti:3, owner:'Talent Acquisition', status:'Active', notes:'', seed:true },
+  { module:'Recruiting', process_area:'Interview Process', change_title:'Interview feedback becomes structured and time-bound', current_state:'Feedback is unstructured, delayed, and inconsistent.', future_state:'Workday enforces structured feedback steps and improves decision traceability.', emp:false, mgr:true, hr:true, pc:4, rc:3, ms:3, ti:2, owner:'TA', status:'Active', notes:'', seed:true },
+  { module:'Recruiting', process_area:'Offer Management', change_title:'Offer approvals become more controlled', current_state:'Offer decisions are negotiated offline with limited compensation governance.', future_state:'Offer creation and approvals follow defined rules and compensation guardrails.', emp:false, mgr:true, hr:true, pc:4, rc:3, ms:2, ti:2, owner:'TA + Comp', status:'Active', notes:'', seed:true },
+  { module:'Recruiting', process_area:'Role Clarity', change_title:'Recruiter and hiring manager roles become clearer', current_state:'Hiring managers rely heavily on recruiters for process execution.', future_state:'Managers have clearer responsibility for reviewing candidates, providing feedback, and making decisions in Workday.', emp:false, mgr:true, hr:true, pc:2, rc:4, ms:4, ti:1, owner:'TA', status:'Active', notes:'', seed:true },
+
+  // TALENT & PERFORMANCE
+  { module:'Talent & Performance', process_area:'Performance Reviews', change_title:'Performance reviews move from document-based to system-driven', current_state:'Reviews are completed in forms, PowerPoint, or email attachments.', future_state:'Review cycles, goals, and feedback are managed in Workday.', emp:true, mgr:true, hr:true, pc:4, rc:3, ms:3, ti:3, owner:'Talent CoE', status:'Active', notes:'', seed:true },
+  { module:'Talent & Performance', process_area:'Talent Visibility', change_title:'Managers gain visibility to talent data in one place', current_state:'Talent discussions depend on fragmented inputs.', future_state:'Managers view skills, performance history, and talent information through a unified profile.', emp:false, mgr:true, hr:true, pc:2, rc:2, ms:3, ti:3, owner:'Talent CoE', status:'Active', notes:'', seed:true },
+  { module:'Talent & Performance', process_area:'Goal Setting', change_title:'Goal-setting becomes more standardised', current_state:'Goals vary widely by team and are often not tracked consistently.', future_state:'Goal planning, review checkpoints, and alignment are managed more consistently in the platform.', emp:true, mgr:true, hr:false, pc:3, rc:3, ms:3, ti:2, owner:'Talent CoE', status:'Active', notes:'', seed:true },
+  { module:'Talent & Performance', process_area:'Continuous Feedback', change_title:'Continuous feedback expectations increase', current_state:'Feedback happens mainly during annual review cycles.', future_state:'The organisation encourages more ongoing check-ins and feedback capture in the system.', emp:true, mgr:true, hr:false, pc:2, rc:3, ms:5, ti:2, owner:'HRBP', status:'Active', notes:'Strong mindset shift required', seed:true },
+  { module:'Talent & Performance', process_area:'Talent Calibration', change_title:'Talent discussions become data-driven', current_state:'Succession and performance discussions are manager-memory driven.', future_state:'Talent reviews are supported by visible data, calibration inputs, and common criteria.', emp:false, mgr:true, hr:true, pc:3, rc:3, ms:4, ti:3, owner:'Talent CoE', status:'Active', notes:'', seed:true },
+
+  // COMPENSATION
+  { module:'Compensation', process_area:'Comp Planning', change_title:'Merit and bonus planning move from spreadsheets to Workday', current_state:'Compensation planning is done offline in multiple spreadsheets.', future_state:'Managers plan compensation within Workday using configured budgets and approval controls.', emp:false, mgr:true, hr:true, pc:5, rc:4, ms:4, ti:3, owner:'Comp CoE', status:'Active', notes:'High process change—spreadsheet elimination', seed:true },
+  { module:'Compensation', process_area:'Budget Visibility', change_title:'Managers can see budget guardrails during planning', current_state:'Managers submit recommendations with limited visibility to budget impact.', future_state:'Financial impact and spend visibility are embedded in the planning process.', emp:false, mgr:true, hr:true, pc:3, rc:3, ms:3, ti:3, owner:'Comp CoE', status:'Active', notes:'', seed:true },
+  { module:'Compensation', process_area:'Governance', change_title:'Compensation decisions become more transparent and controlled', current_state:'Exceptions and allowances are handled offline with uneven governance.', future_state:'Plans, approvals, and adjustments are governed through configurable rules.', emp:false, mgr:true, hr:true, pc:4, rc:3, ms:3, ti:2, owner:'Comp + Legal', status:'Active', notes:'', seed:true },
+  { module:'Compensation', process_area:'Global Alignment', change_title:'Local and global compensation plans aligned in one framework', current_state:'Countries or businesses use separate approaches and tools.', future_state:'Workday supports global consistency with local variations and currencies.', emp:false, mgr:false, hr:true, pc:5, rc:3, ms:2, ti:2, owner:'Global HR', status:'Active', notes:'', seed:true },
+  { module:'Compensation', process_area:'HR Role', change_title:'HR moves from compiling files to governing decisions', current_state:'HR spends time consolidating data and chasing approvals.', future_state:'HR monitors process completion, exceptions, and fairness indicators.', emp:false, mgr:false, hr:true, pc:4, rc:5, ms:4, ti:3, owner:'HR Ops', status:'Active', notes:'', seed:true },
+
+  // LEARNING
+  { module:'Learning', process_area:'Assignment', change_title:'Learning assignments become role-based and system-driven', current_state:'Training is communicated through email or LMS administration with limited linkage to roles.', future_state:'Learning can be assigned and tracked more systematically against role or development needs.', emp:true, mgr:true, hr:false, pc:3, rc:2, ms:2, ti:3, owner:'L&D', status:'Active', notes:'', seed:true },
+  { module:'Learning', process_area:'Self-Directed', change_title:'Employee ownership of development increases', current_state:'Learning is HR-managed and compliance-led.', future_state:'Employees have greater responsibility to complete learning and manage development actions in the platform.', emp:true, mgr:false, hr:false, pc:2, rc:3, ms:4, ti:2, owner:'L&D', status:'Active', notes:'', seed:true },
+  { module:'Learning', process_area:'Manager Visibility', change_title:'Managers gain visibility to team learning progress', current_state:'Managers rely on HR or separate LMS reports.', future_state:'Managers can monitor completion and development activity more directly.', emp:false, mgr:true, hr:false, pc:2, rc:2, ms:2, ti:3, owner:'L&D', status:'Active', notes:'', seed:true },
+  { module:'Learning', process_area:'Skills Integration', change_title:'Learning links more directly to skills and talent conversations', current_state:'Training history is disconnected from performance and growth discussions.', future_state:'Learning is positioned as part of broader talent and capability development.', emp:true, mgr:true, hr:true, pc:3, rc:2, ms:3, ti:4, owner:'Talent + L&D', status:'Active', notes:'', seed:true },
+  { module:'Learning', process_area:'Compliance', change_title:'Compliance learning becomes easier to track and report', current_state:'Compliance completion is manually monitored.', future_state:'Status, reminders, and completion reporting are managed centrally.', emp:true, mgr:true, hr:false, pc:2, rc:1, ms:1, ti:2, owner:'L&D', status:'Active', notes:'', seed:true },
+
+  // BENEFITS & ABSENCE
+  { module:'Benefits & Absence', process_area:'Leave Requests', change_title:'Leave requests move to self-service', current_state:'Time-off and leave requests happen by email or manager message.', future_state:'Employees submit absence requests in Workday with manager approval workflows.', emp:true, mgr:true, hr:false, pc:3, rc:2, ms:2, ti:2, owner:'HR Ops', status:'Active', notes:'', seed:true },
+  { module:'Benefits & Absence', process_area:'Benefits Access', change_title:'Employees get more visibility into benefit choices', current_state:'Benefit information is distributed across PDFs, portals, and HR help channels.', future_state:'Employees access benefit information and enrollment actions through one platform.', emp:true, mgr:false, hr:true, pc:3, rc:2, ms:2, ti:2, owner:'Benefits', status:'Active', notes:'', seed:true },
+  { module:'Benefits & Absence', process_area:'Team Availability', change_title:'Manager visibility to team availability improves', current_state:'Managers track absence through email or local sheets.', future_state:'Manager visibility improves through system-based requests and approvals.', emp:false, mgr:true, hr:false, pc:2, rc:2, ms:2, ti:2, owner:'HR Ops', status:'Active', notes:'', seed:true },
+  { module:'Benefits & Absence', process_area:'HR Effort', change_title:'HR effort reduces during enrollment cycles', current_state:'HR manually answers repetitive questions and resolves status confusion.', future_state:'Standardised workflows and visibility reduce transactional support effort.', emp:false, mgr:false, hr:true, pc:3, rc:4, ms:3, ti:2, owner:'Benefits', status:'Active', notes:'', seed:true },
+  { module:'Benefits & Absence', process_area:'Policy', change_title:'Policy enforcement becomes more consistent', current_state:'Policy interpretation varies by location or manager.', future_state:'Rules and workflows support more consistent process execution.', emp:true, mgr:true, hr:true, pc:3, rc:2, ms:2, ti:2, owner:'HR Policy', status:'Active', notes:'', seed:true },
+
+  // PAYROLL & TIME
+  { module:'Payroll & Time', process_area:'Payroll Inputs', change_title:'Payroll inputs become more standardised upstream', current_state:'Payroll teams receive inconsistent or late data from HR and managers.', future_state:'More data is entered and approved upstream in Workday, improving payroll readiness.', emp:false, mgr:true, hr:true, pc:4, rc:3, ms:2, ti:2, owner:'Payroll', status:'Active', notes:'', seed:true },
+  { module:'Payroll & Time', process_area:'Data Corrections', change_title:'Data corrections become more visible and auditable', current_state:'Corrections happen through offline files and email approvals.', future_state:'Transactions are more traceable through workflow and system history.', emp:false, mgr:false, hr:true, pc:3, rc:2, ms:2, ti:3, owner:'Payroll', status:'Active', notes:'', seed:true },
+  { module:'Payroll & Time', process_area:'Time Approvals', change_title:'Manager accountability for time approvals increases', current_state:'Time approvals are loosely managed or delegated informally.', future_state:'Manager approval responsibility is clearer and more time-bound.', emp:true, mgr:true, hr:false, pc:3, rc:4, ms:4, ti:2, owner:'Payroll + Ops', status:'Active', notes:'', seed:true },
+  { module:'Payroll & Time', process_area:'Payroll Role', change_title:'Payroll teams shift from data chasing to exception handling', current_state:'Payroll teams chase missing inputs and local files.', future_state:'Payroll focuses more on exception management and validation.', emp:false, mgr:false, hr:true, pc:4, rc:5, ms:4, ti:3, owner:'Payroll', status:'Active', notes:'', seed:true },
+  { module:'Payroll & Time', process_area:'Employee Queries', change_title:'Employee queries shift toward self-service visibility', current_state:'Employees contact HR/payroll for status and basic information.', future_state:'Employees can view more of their own information directly.', emp:true, mgr:false, hr:false, pc:2, rc:2, ms:3, ti:2, owner:'HR Ops', status:'Active', notes:'', seed:true }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let masterData = JSON.parse(JSON.stringify(SEED_DATA)).map((d, i) => ({ ...d, id: i + 1 }));
+let nextId = masterData.length + 1;
+let editingId = null;
+let selectedModule = 'core';
+let charts = {};
+
+const weights = { pc: 0.30, rc: 0.30, ms: 0.20, ti: 0.20 };
+
+// ============================================================
+// SCORING DESCRIPTORS
+// ============================================================
+const PC_DESC = ['', 'Minimal — mostly same steps, system replaced', 'Minor simplification or digitisation', 'Moderate redesign — steps removed or added', 'Significant redesign with new workflows introduced', 'Completely new process — no resemblance to current state'];
+const RC_DESC = ['', 'No role change', 'Minor responsibility shifts', 'Some tasks move across roles (e.g. HR → Manager)', 'Major ownership shift between functions', 'Completely new role expectations and accountability model'];
+const MS_DESC = ['', 'No mindset change required', 'Slight behaviour adjustment expected', 'Moderate shift — new expectations introduced', 'Significant shift — new accountability and ownership', 'Fundamental shift: self-service, transparency, data-driven culture'];
+const TI_DESC = ['', 'Basic platform or UI change only', 'Workflow-enabled platform — structured digital processes', 'Connected digital enablement — unified data access', 'Intelligent automation / augmented decision support', 'AI / agentic work redesign — fundamentally changes how work is done'];
+
+// ============================================================
+// CALCULATE
+// ============================================================
+function calcImpact(row) {
+  const score = weights.pc * row.pc + weights.rc * row.rc + weights.ms * row.ms + weights.ti * row.ti;
+  return Math.round(score * 10) / 10;
+}
+
+function riskLevel(score) {
+  if (score < 2) return 'Low';
+  if (score <= 3.5) return 'Medium';
+  return 'High';
+}
+
+function riskColor(level) {
+  if (level === 'Low') return '#24A148';
+  if (level === 'Medium') return '#F1C21B';
+  return '#DA1E28';
+}
+
+function recalcAll() {
+  masterData = masterData.map(r => ({ ...r, impact: calcImpact(r), risk: riskLevel(calcImpact(r)) }));
+  updateKPIs();
+}
+
+// ============================================================
+// KPI STRIP
+// ============================================================
+function updateKPIs() {
+  const total = masterData.length;
+  const high = masterData.filter(r => r.risk === 'High').length;
+  const avg = total ? (masterData.reduce((s, r) => s + r.impact, 0) / total).toFixed(1) : '—';
+  const modules = [...new Set(masterData.map(r => r.module))].length;
+
+  // Persona risk
+  const personas = ['Employee', 'Manager', 'HR'];
+  const pKeys = ['emp', 'mgr', 'hr'];
+  const pScores = personas.map((_, i) => {
+    const rows = masterData.filter(r => r[pKeys[i]]);
+    return rows.length ? rows.reduce((s, r) => s + r.impact, 0) / rows.length : 0;
+  });
+  const maxIdx = pScores.indexOf(Math.max(...pScores));
+  const topPersona = pScores[maxIdx] > 0 ? personas[maxIdx] : '—';
+
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-high').textContent = high;
+  document.getElementById('kpi-avg').textContent = avg;
+  document.getElementById('kpi-persona').textContent = topPersona;
+  document.getElementById('kpi-modules').textContent = modules;
+}
+
+// ============================================================
+// WEIGHTS
+// ============================================================
+function updateWeights() {
+  const p = +document.getElementById('w-process').value;
+  const r = +document.getElementById('w-role').value;
+  const m = +document.getElementById('w-mindset').value;
+  const t = +document.getElementById('w-tech').value;
+  const total = p + r + m + t;
+
+  document.getElementById('w-process-pct').textContent = Math.round(p / total * 100) + '%';
+  document.getElementById('w-role-pct').textContent = Math.round(r / total * 100) + '%';
+  document.getElementById('w-mindset-pct').textContent = Math.round(m / total * 100) + '%';
+  document.getElementById('w-tech-pct').textContent = Math.round(t / total * 100) + '%';
+
+  document.getElementById('weights-total').textContent = 'Auto-normalised to 100% ✓';
+  document.getElementById('weights-total').className = 'total-weight total-ok';
+
+  weights.pc = p / total;
+  weights.rc = r / total;
+  weights.ms = m / total;
+  weights.ti = t / total;
+
+  recalcAll();
+  renderTable();
+}
+
+// ============================================================
+// SLIDER DESCRIPTIONS
+// ============================================================
+function updateSliderDesc(dim) {
+  const map = { pc: [PC_DESC, 'f-pc', 'f-pc-val', 'f-pc-desc'], rc: [RC_DESC, 'f-rc', 'f-rc-val', 'f-rc-desc'], ms: [MS_DESC, 'f-ms', 'f-ms-val', 'f-ms-desc'], ti: [TI_DESC, 'f-ti', 'f-ti-val', 'f-ti-desc'] };
+  const [desc, slId, valId, descId] = map[dim];
+  const v = +document.getElementById(slId).value;
+  document.getElementById(valId).textContent = v;
+  document.getElementById(descId).textContent = desc[v];
+  checkConsistency();
+}
+
+function checkConsistency() {
+  const ti = +document.getElementById('f-ti').value;
+  const ms = +document.getElementById('f-ms').value;
+  const warn = document.getElementById('score-warning');
+  if (ti >= 4 && ms <= 2) {
+    warn.textContent = '⚠️ High technology impact typically requires a meaningful mindset shift. Consider reviewing the Mindset Shift score.';
+    warn.classList.remove('hidden');
+  } else {
+    warn.classList.add('hidden');
+  }
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+  const titles = { library: 'Module Library', impact: 'Impact Assessment', heatmap: 'Change Heatmap', stakeholder: 'Stakeholder Risk', strategy: 'Adoption Strategy', training: 'Training Plan', dashboard: 'Dashboard' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+
+  recalcAll();
+  if (page === 'library') renderLibrary();
+  if (page === 'impact') renderTable();
+  if (page === 'heatmap') renderHeatmap();
+  if (page === 'stakeholder') renderStakeholder();
+  if (page === 'strategy') renderStrategy();
+  if (page === 'training') renderTraining();
+  if (page === 'dashboard') renderDashboard();
+}
+
+// ============================================================
+// LIBRARY
+// ============================================================
+function renderLibrary() {
+  const grid = document.getElementById('module-filter-grid');
+  grid.innerHTML = '';
+  MODULES.forEach(m => {
+    const cnt = masterData.filter(r => r.module === m.name).length;
+    const div = document.createElement('div');
+    div.className = 'module-card' + (selectedModule === m.id ? ' active' : '');
+    div.innerHTML = `<span class="mod-icon">${m.icon}</span><div><div class="mod-name">${m.name}</div><div class="mod-count">${cnt} changes</div></div>`;
+    div.onclick = () => { selectedModule = m.id; renderLibrary(); };
+    grid.appendChild(div);
+  });
+
+  const mod = MODULES.find(m => m.id === selectedModule);
+  const rows = SEED_DATA.filter(r => r.module === mod.name);
+  const area = document.getElementById('example-cards-area');
+  area.innerHTML = `<div class="section-title">${mod.icon} ${mod.name} — Scenario Examples</div>`;
+
+  const container = document.createElement('div');
+  container.className = 'example-cards';
+  rows.forEach(r => {
+    const impact = calcImpactRaw(r);
+    const risk = riskLevel(impact);
+    const inAssessment = masterData.some(m => m.change_title === r.change_title);
+    const card = document.createElement('div');
+    card.className = 'example-card';
+    card.innerHTML = `
+      <div style="font-size:22px; padding-top:2px;">${mod.icon}</div>
+      <div class="example-card-content">
+        <div class="example-card-title">${r.change_title}</div>
+        <div class="example-card-states"><strong>Now:</strong> ${r.current_state}<br><strong>Future:</strong> ${r.future_state}</div>
+        <div class="example-card-tags">
+          <span class="tag tag-gray">${r.process_area}</span>
+          ${r.emp ? '<span class="tag tag-blue">Employee</span>' : ''}
+          ${r.mgr ? '<span class="tag tag-blue">Manager</span>' : ''}
+          ${r.hr ? '<span class="tag tag-blue">HR</span>' : ''}
+          <span class="tag ${risk === 'High' ? 'tag-red' : risk === 'Medium' ? 'tag-yellow' : 'tag-green'}">${risk} Risk</span>
+          <span class="tag tag-gray">Impact: ${impact}</span>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end; min-width:110px;">
+        ${inAssessment ? '<span class="tag tag-green">✓ In Assessment</span>' : `<button class="btn btn-primary btn-sm" onclick='addFromSeed(${JSON.stringify(r)})'>＋ Add</button>`}
+        <button class="btn btn-ghost btn-sm" onclick='editFromSeed(${JSON.stringify(r)})'>Edit & Add</button>
+      </div>`;
+    container.appendChild(card);
+  });
+  area.appendChild(container);
+}
+
+function calcImpactRaw(r) {
+  return Math.round((weights.pc * r.pc + weights.rc * r.rc + weights.ms * r.ms + weights.ti * r.ti) * 10) / 10;
+}
+
+function addFromSeed(r) {
+  const exists = masterData.some(m => m.change_title === r.change_title);
+  if (exists) { alert('This change is already in the assessment.'); return; }
+  const newRow = { ...r, id: nextId++, impact: calcImpactRaw(r), risk: riskLevel(calcImpactRaw(r)) };
+  masterData.push(newRow);
+  recalcAll();
+  renderLibrary();
+}
+
+function editFromSeed(r) {
+  openAddModal();
+  document.getElementById('f-module').value = r.module;
+  document.getElementById('f-process-area').value = r.process_area;
+  document.getElementById('f-title').value = r.change_title;
+  document.getElementById('f-current').value = r.current_state;
+  document.getElementById('f-future').value = r.future_state;
+  document.getElementById('f-emp').checked = r.emp;
+  document.getElementById('f-mgr').checked = r.mgr;
+  document.getElementById('f-hr').checked = r.hr;
+  document.getElementById('f-pc').value = r.pc;
+  document.getElementById('f-rc').value = r.rc;
+  document.getElementById('f-ms').value = r.ms;
+  document.getElementById('f-ti').value = r.ti;
+  ['pc','rc','ms','ti'].forEach(d => updateSliderDesc(d));
+}
+
+// ============================================================
+// TABLE
+// ============================================================
+function renderTable() {
+  recalcAll();
+  const modF = document.getElementById('filter-module').value;
+  const riskF = document.getElementById('filter-risk').value;
+  const personaF = document.getElementById('filter-persona').value;
+
+  let rows = masterData.filter(r => {
+    if (modF && r.module !== modF) return false;
+    if (riskF && r.risk !== riskF) return false;
+    if (personaF === 'Employee' && !r.emp) return false;
+    if (personaF === 'Manager' && !r.mgr) return false;
+    if (personaF === 'HR' && !r.hr) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('impact-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No changes match the current filters.</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="tag tag-blue">${r.module}</span></td>
+      <td><strong>${r.change_title}</strong><br><span style="font-size:11px;color:var(--gray-50)">${r.process_area}</span></td>
+      <td>${[r.emp && '👤', r.mgr && '👔', r.hr && '🏢'].filter(Boolean).join(' ')}</td>
+      <td><span class="score-pill score-${r.pc}">${r.pc}</span></td>
+      <td><span class="score-pill score-${r.rc}">${r.rc}</span></td>
+      <td><span class="score-pill score-${r.ms}">${r.ms}</span></td>
+      <td><span class="score-pill score-${r.ti}">${r.ti}</span></td>
+      <td><strong style="font-family:'IBM Plex Mono',monospace;">${r.impact}</strong></td>
+      <td><span class="risk-badge risk-${r.risk.toLowerCase()}">${r.risk}</span></td>
+      <td><span class="status-chip status-${r.status === 'Active' ? 'active' : r.status === 'Under Review' ? 'review' : 'done'}">${r.status}</span></td>
+      <td>
+        <div class="actions-cell">
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal(${r.id})">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="duplicateRow(${r.id})">⧉</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRow(${r.id})">🗑</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// HEATMAP
+// ============================================================
+function renderHeatmap() {
+  recalcAll();
+  // Module impact chart
+  const mods = MODULES.map(m => m.name);
+  const modScores = mods.map(name => {
+    const rows = masterData.filter(r => r.module === name);
+    return rows.length ? (rows.reduce((s, r) => s + r.impact, 0) / rows.length).toFixed(2) : 0;
+  });
+  const modColors = modScores.map(s => s > 3.5 ? '#DA1E28' : s > 2 ? '#F1C21B' : '#24A148');
+
+  destroyChart('chart-module-impact');
+  charts['chart-module-impact'] = new Chart(document.getElementById('chart-module-impact'), {
+    type: 'bar',
+    data: { labels: mods.map(m => m.replace(' & ', '\n& ')), datasets: [{ data: modScores, backgroundColor: modColors, borderRadius: 3 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 5, grid: { color: '#f4f4f4' } }, x: { grid: { display: false } } }, responsive: true }
+  });
+
+  // Risk dist pie
+  const low = masterData.filter(r => r.risk === 'Low').length;
+  const med = masterData.filter(r => r.risk === 'Medium').length;
+  const high = masterData.filter(r => r.risk === 'High').length;
+
+  destroyChart('chart-risk-dist');
+  charts['chart-risk-dist'] = new Chart(document.getElementById('chart-risk-dist'), {
+    type: 'doughnut',
+    data: { labels: ['Low', 'Medium', 'High'], datasets: [{ data: [low, med, high], backgroundColor: ['#24A148', '#F1C21B', '#DA1E28'], borderWidth: 0 }] },
+    options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%', responsive: true }
+  });
+
+  // Heatmap bars
+  const sorted = [...masterData].sort((a, b) => b.impact - a.impact);
+  const bars = document.getElementById('heatmap-bars');
+  bars.innerHTML = sorted.slice(0, 15).map(r => {
+    const w = (r.impact / 5) * 100;
+    const col = r.risk === 'High' ? '#DA1E28' : r.risk === 'Medium' ? '#F1C21B' : '#24A148';
+    return `<div class="heatmap-row">
+      <div class="heatmap-label" title="${r.change_title}">${r.change_title}</div>
+      <div style="flex:1; height:18px; background:#f4f4f4; border-radius:2px; overflow:hidden;">
+        <div style="width:${w}%; height:100%; background:${col}; border-radius:2px; transition:width 0.4s;"></div>
+      </div>
+      <div style="width:30px; text-align:right; font-size:11px; font-family:'IBM Plex Mono',monospace; font-weight:700; color:${col};">${r.impact}</div>
+    </div>`;
+  }).join('');
+
+  // Insights
+  const insightBox = document.getElementById('heatmap-insights');
+  const topMod = mods[modScores.indexOf(Math.max(...modScores))];
+  const topChange = sorted[0];
+  insightBox.innerHTML = `
+    <div class="insight-box">📌 <strong>${topMod}</strong> shows the highest average impact score — it should be prioritised in the change plan.</div>
+    <div class="insight-box">⚠️ <strong>"${topChange?.change_title}"</strong> is the highest-impact individual change with a score of <strong>${topChange?.impact}</strong>.</div>
+    <div class="insight-box">🔴 ${high} of ${masterData.length} changes are rated <strong>High Risk</strong> — focused intervention is required.</div>
+  `;
+}
+
+// ============================================================
+// STAKEHOLDER
+// ============================================================
+function renderStakeholder() {
+  recalcAll();
+  const personas = [
+    { key: 'emp', name: 'Employee', icon: '👤', actions: { Low: ['Self-service launch communication', 'Quick-reference guide', 'FAQ portal'], Medium: ['Onboarding walk-throughs', 'Drop-in support sessions', 'Peer champion network'], High: ['Guided simulation training', 'Change champion per team', 'Manager-led adoption reinforcement'] } },
+    { key: 'mgr', name: 'Manager', icon: '👔', actions: { Low: ['Manager overview briefing', 'Process reference cards'], Medium: ['Manager readiness workshops', 'Dedicated helpdesk line', 'Approval workflow training'], High: ['Manager bootcamps', 'Simulation-based learning', 'Sponsor accountability dashboard', 'Weekly adoption tracking'] } },
+    { key: 'hr', name: 'HR', icon: '🏢', actions: { Low: ['System walkthrough sessions', 'Updated process documentation'], Medium: ['Role-based deep-dive training', 'HR knowledge base', 'CoE coordination workshops'], High: ['Operating model redesign support', 'Analytics capability uplift', 'Structured transition coaching'] } }
+  ];
+
+  const cards = document.getElementById('persona-cards');
+  const radarData = [];
+
+  cards.innerHTML = '';
+  personas.forEach(p => {
+    const rows = masterData.filter(r => r[p.key]);
+    const avgImpact = rows.length ? rows.reduce((s, r) => s + r.impact, 0) / rows.length : 0;
+    const riskScore = Math.min(avgImpact, 5);
+    const risk = riskLevel(riskScore);
+    radarData.push(riskScore);
+
+    const barClass = risk === 'High' ? 'risk-bar-high' : risk === 'Medium' ? 'risk-bar-med' : 'risk-bar-low';
+    const actions = p.actions[risk];
+
+    const card = document.createElement('div');
+    card.className = 'persona-card';
+    card.innerHTML = `
+      <div class="persona-header"><span class="persona-icon">${p.icon}</span><span class="persona-name">${p.name}</span></div>
+      <div class="persona-risk-score" style="color:${riskColor(risk)}">${riskScore.toFixed(1)}</div>
+      <div style="font-size:11px; color:var(--gray-50); margin-top:2px;">${rows.length} changes affect this persona</div>
+      <div class="risk-bar"><div class="risk-bar-fill ${barClass}" style="width:${riskScore / 5 * 100}%"></div></div>
+      <span class="risk-badge risk-${risk.toLowerCase()}">${risk} Risk</span>
+      <div class="persona-actions" style="margin-top:12px;">
+        <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; color:var(--gray-70); margin-bottom:6px;">Recommended Actions</div>
+        ${actions.map(a => `<div class="action-item">→ ${a}</div>`).join('')}
+      </div>`;
+    cards.appendChild(card);
+  });
+
+  // Radar
+  destroyChart('chart-radar');
+  charts['chart-radar'] = new Chart(document.getElementById('chart-radar'), {
+    type: 'radar',
+    data: {
+      labels: ['Employee\nImpact', 'Employee\nReadiness', 'Manager\nImpact', 'Manager\nReadiness', 'HR\nImpact', 'HR\nReadiness'],
+      datasets: [{
+        label: 'Risk Profile', data: [radarData[0], 5 - radarData[0], radarData[1], 5 - radarData[1], radarData[2], 5 - radarData[2]],
+        backgroundColor: 'rgba(15,98,254,0.1)', borderColor: '#0F62FE', borderWidth: 2, pointBackgroundColor: '#0F62FE'
+      }]
+    },
+    options: { scales: { r: { min: 0, max: 5, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } }, responsive: true }
+  });
+}
+
+// ============================================================
+// STRATEGY
+// ============================================================
+function renderStrategy() {
+  recalcAll();
+  const personas = [
+    { key: 'emp', name: 'Employee', icon: '👤' },
+    { key: 'mgr', name: 'Manager', icon: '👔' },
+    { key: 'hr', name: 'HR', icon: '🏢' }
+  ];
+
+  const interventions = {
+    Low: ['Communication campaign — awareness and readiness', 'FAQ and self-help resources', 'Short overview sessions'],
+    Medium: ['Role-based training modules', 'Structured communications cadence', 'Change champion network activation', 'Manager-led cascade messaging'],
+    High: ['Intensive simulation-based learning', 'Dedicated support helpdesk', 'Executive sponsorship alignment', 'Bi-weekly adoption tracking and review', 'Persona-specific onboarding programme']
+  };
+
+  const comms = {
+    Low: '"You will have a new, simpler way to manage your HR tasks."',
+    Medium: '"Your role is evolving — Workday gives you the tools to own your HR responsibilities."',
+    High: '"This transformation changes how work gets done. Your active participation is essential for the organisation to realise the benefits."'
+  };
+
+  const insights = document.getElementById('strategy-insights');
+  const allHigh = masterData.filter(r => r.risk === 'High');
+  const topMod = (() => {
+    const counts = {};
+    allHigh.forEach(r => { counts[r.module] = (counts[r.module] || 0) + 1; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+  })();
+
+  insights.innerHTML = `
+    <div class="insight-box">🔑 The adoption strategy should prioritise <strong>${topMod}</strong>, which has the highest concentration of high-risk changes.</div>
+    <div class="insight-box">📅 Phased activation is recommended: <strong>Awareness → Capability Building → Reinforcement</strong>, aligned to go-live milestones.</div>
+  `;
+
+  const grid = document.getElementById('intervention-grid');
+  grid.innerHTML = '';
+  personas.forEach(p => {
+    const rows = masterData.filter(r => r[p.key]);
+    const avg = rows.length ? rows.reduce((s, r) => s + r.impact, 0) / rows.length : 0;
+    const risk = riskLevel(avg);
+    const card = document.createElement('div');
+    card.className = 'intervention-card';
+    card.innerHTML = `
+      <div class="int-persona">${p.icon} ${p.name}</div>
+      <div class="int-risk-level" style="color:${riskColor(risk)}">${risk} Risk</div>
+      <div style="font-size:11px; color:var(--gray-50); margin-bottom:10px; font-style:italic;">${comms[risk]}</div>
+      <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; color:var(--gray-70); margin-bottom:6px;">Key Interventions</div>
+      <div class="int-actions">
+        ${interventions[risk].map(a => `<div class="int-action-item"><div class="int-dot"></div>${a}</div>`).join('')}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+// ============================================================
+// TRAINING
+// ============================================================
+function renderTraining() {
+  recalcAll();
+  const personas = [
+    { key: 'emp', name: 'Employee', icon: '👤' },
+    { key: 'mgr', name: 'Manager', icon: '👔' },
+    { key: 'hr', name: 'HR', icon: '🏢' }
+  ];
+
+  const methods = {
+    Low: [{ cls: 'method-video', label: 'Short Videos' }, { cls: 'method-guided', label: 'Job Aids' }],
+    Medium: [{ cls: 'method-guided', label: 'Guided Learning' }, { cls: 'method-video', label: 'Role-based Modules' }, { cls: 'method-workshop', label: 'Live Q&A' }],
+    High: [{ cls: 'method-sim', label: 'Simulation' }, { cls: 'method-workshop', label: 'Workshops' }, { cls: 'method-guided', label: 'Coaching' }, { cls: 'method-video', label: 'Microlearning' }]
+  };
+
+  const focus = {
+    Low: 'Self-service task completion and navigation',
+    Medium: 'Role-based workflows, decisions, and approvals',
+    High: 'Full operating model shift, advanced capabilities, and change reinforcement'
+  };
+
+  const rows = document.getElementById('training-rows');
+  rows.innerHTML = '';
+
+  personas.forEach(p => {
+    const pRows = masterData.filter(r => r[p.key]);
+    const avg = pRows.length ? pRows.reduce((s, r) => s + r.impact, 0) / pRows.length : 0;
+    const risk = riskLevel(avg);
+    const m = methods[risk];
+
+    const div = document.createElement('div');
+    div.className = 'training-row';
+    div.innerHTML = `
+      <div><div class="training-persona">${p.icon} ${p.name}</div><span class="risk-badge risk-${risk.toLowerCase()}" style="margin-top:4px; display:inline-block;">${risk}</span></div>
+      <div>
+        <div class="training-method">${m.map(x => `<span class="method-pill ${x.cls}">${x.label}</span>`).join('')}</div>
+        <div style="font-size:11.5px; color:var(--gray-70); margin-top:6px;">${focus[risk]}</div>
+      </div>
+      <div style="font-size:12px; font-family:'IBM Plex Mono',monospace; color:var(--blue-60); font-weight:700;">${pRows.length} changes</div>`;
+    rows.appendChild(div);
+  });
+
+  // Module-level detail
+  const modDiv = document.createElement('div');
+  modDiv.style.cssText = 'margin-top:20px;';
+  modDiv.innerHTML = '<div class="section-title">Module-Level Training Focus</div>';
+
+  MODULES.forEach(m => {
+    const modRows = masterData.filter(r => r.module === m.name);
+    if (!modRows.length) return;
+    const avg = modRows.reduce((s, r) => s + r.impact, 0) / modRows.length;
+    const risk = riskLevel(avg);
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex; align-items:center; gap:12px; padding:8px 14px; background:var(--card-bg); border:1px solid var(--border); border-radius:4px; margin-bottom:6px;';
+    div.innerHTML = `<span style="font-size:16px;">${m.icon}</span><span style="font-weight:600; font-size:13px; flex:1;">${m.name}</span><span class="risk-badge risk-${risk.toLowerCase()}">${risk}</span><span style="font-size:11px; color:var(--gray-50);">${modRows.length} changes · avg ${avg.toFixed(1)}</span>`;
+    modDiv.appendChild(div);
+  });
+
+  rows.appendChild(modDiv);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  recalcAll();
+  const total = masterData.length;
+  const high = masterData.filter(r => r.risk === 'High').length;
+  const med = masterData.filter(r => r.risk === 'Medium').length;
+  const low = masterData.filter(r => r.risk === 'Low').length;
+  const avg = total ? (masterData.reduce((s, r) => s + r.impact, 0) / total).toFixed(1) : 0;
+
+  document.getElementById('dash-kpis').innerHTML = `
+    <div class="dash-kpi"><div class="dash-kpi-num">${total}</div><div class="dash-kpi-label">Total Change Items</div></div>
+    <div class="dash-kpi"><div class="dash-kpi-num" style="color:#DA1E28">${high}</div><div class="dash-kpi-label">High Risk Changes</div></div>
+    <div class="dash-kpi"><div class="dash-kpi-num" style="color:#F1C21B">${med}</div><div class="dash-kpi-label">Medium Risk Changes</div></div>
+    <div class="dash-kpi"><div class="dash-kpi-num">${avg}</div><div class="dash-kpi-label">Average Impact Score</div></div>
+  `;
+
+  // Dimension breakdown
+  const avgPC = total ? masterData.reduce((s, r) => s + r.pc, 0) / total : 0;
+  const avgRC = total ? masterData.reduce((s, r) => s + r.rc, 0) / total : 0;
+  const avgMS = total ? masterData.reduce((s, r) => s + r.ms, 0) / total : 0;
+  const avgTI = total ? masterData.reduce((s, r) => s + r.ti, 0) / total : 0;
+
+  destroyChart('chart-dimensions');
+  charts['chart-dimensions'] = new Chart(document.getElementById('chart-dimensions'), {
+    type: 'bar',
+    data: {
+      labels: ['Process Change', 'Role Change', 'Mindset Shift', 'Tech Impact'],
+      datasets: [{ data: [avgPC, avgRC, avgMS, avgTI].map(v => v.toFixed(2)), backgroundColor: ['#0F62FE', '#002D9C', '#78A9FF', '#D0E2FF'], borderRadius: 3 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 5, grid: { color: '#f4f4f4' } }, x: { grid: { display: false } } }, responsive: true }
+  });
+
+  // Module risk profile
+  const mods = MODULES.map(m => m.name);
+  const modAvgs = mods.map(name => {
+    const rows = masterData.filter(r => r.module === name);
+    return rows.length ? (rows.reduce((s, r) => s + r.impact, 0) / rows.length).toFixed(2) : 0;
+  });
+  const modColors = modAvgs.map(s => s > 3.5 ? '#DA1E28' : s > 2 ? '#F1C21B' : '#24A148');
+
+  destroyChart('chart-module-risk');
+  charts['chart-module-risk'] = new Chart(document.getElementById('chart-module-risk'), {
+    type: 'horizontalBar',
+    type: 'bar',
+    data: { labels: mods, datasets: [{ data: modAvgs, backgroundColor: modColors, borderRadius: 3, indexAxis: 'y' }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 5, grid: { color: '#f4f4f4' } }, y: { grid: { display: false } } }, responsive: true }
+  });
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add Change Item';
+  document.getElementById('f-module').value = 'Core HCM';
+  document.getElementById('f-process-area').value = '';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-current').value = '';
+  document.getElementById('f-future').value = '';
+  document.getElementById('f-emp').checked = true;
+  document.getElementById('f-mgr').checked = true;
+  document.getElementById('f-hr').checked = false;
+  ['pc', 'rc', 'ms', 'ti'].forEach(d => { document.getElementById('f-' + d).value = 3; updateSliderDesc(d); });
+  document.getElementById('f-status').value = 'Active';
+  document.getElementById('f-owner').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('score-warning').classList.add('hidden');
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function openEditModal(id) {
+  const r = masterData.find(x => x.id === id);
+  if (!r) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit Change Item';
+  document.getElementById('f-module').value = r.module;
+  document.getElementById('f-process-area').value = r.process_area || '';
+  document.getElementById('f-title').value = r.change_title;
+  document.getElementById('f-current').value = r.current_state;
+  document.getElementById('f-future').value = r.future_state;
+  document.getElementById('f-emp').checked = r.emp;
+  document.getElementById('f-mgr').checked = r.mgr;
+  document.getElementById('f-hr').checked = r.hr;
+  document.getElementById('f-pc').value = r.pc;
+  document.getElementById('f-rc').value = r.rc;
+  document.getElementById('f-ms').value = r.ms;
+  document.getElementById('f-ti').value = r.ti;
+  ['pc', 'rc', 'ms', 'ti'].forEach(d => updateSliderDesc(d));
+  document.getElementById('f-status').value = r.status || 'Active';
+  document.getElementById('f-owner').value = r.owner || '';
+  document.getElementById('f-notes').value = r.notes || '';
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  editingId = null;
+}
+
+function saveRow() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { alert('Please enter a change title.'); return; }
+
+  const row = {
+    module: document.getElementById('f-module').value,
+    process_area: document.getElementById('f-process-area').value,
+    change_title: title,
+    current_state: document.getElementById('f-current').value,
+    future_state: document.getElementById('f-future').value,
+    emp: document.getElementById('f-emp').checked,
+    mgr: document.getElementById('f-mgr').checked,
+    hr: document.getElementById('f-hr').checked,
+    pc: +document.getElementById('f-pc').value,
+    rc: +document.getElementById('f-rc').value,
+    ms: +document.getElementById('f-ms').value,
+    ti: +document.getElementById('f-ti').value,
+    status: document.getElementById('f-status').value,
+    owner: document.getElementById('f-owner').value,
+    notes: document.getElementById('f-notes').value,
+    seed: false
+  };
+
+  row.impact = calcImpactRaw(row);
+  row.risk = riskLevel(row.impact);
+
+  if (editingId !== null) {
+    const idx = masterData.findIndex(x => x.id === editingId);
+    masterData[idx] = { ...row, id: editingId };
+  } else {
+    masterData.push({ ...row, id: nextId++ });
+  }
+
+  recalcAll();
+  renderTable();
+  closeModal();
+}
+
+function deleteRow(id) {
+  if (!confirm('Remove this change item from the assessment?')) return;
+  masterData = masterData.filter(r => r.id !== id);
+  recalcAll();
+  renderTable();
+}
+
+function duplicateRow(id) {
+  const r = masterData.find(x => x.id === id);
+  if (!r) return;
+  const newRow = { ...r, id: nextId++, change_title: r.change_title + ' (copy)', seed: false };
+  masterData.push(newRow);
+  recalcAll();
+  renderTable();
+}
+
+// ============================================================
+// CHART DESTROY
+// ============================================================
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ============================================================
+// BROWSER STORAGE — AUTO-SAVE & AUTO-LOAD
+// ============================================================
+const STORAGE_KEY = 'hcm_change_simulator_v1';
+
+function persistToStorage() {
+  try {
+    const payload = JSON.stringify({ masterData, nextId, weights, savedAt: new Date().toISOString() });
+    localStorage.setItem(STORAGE_KEY, payload);
+    updateAutosaveIndicator(true);
+  } catch(e) {
+    updateAutosaveIndicator(false, 'Storage error');
+  }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    masterData = parsed.masterData;
+    nextId = parsed.nextId;
+    Object.assign(weights, parsed.weights);
+    // Sync weight sliders to loaded values
+    const total = weights.pc + weights.rc + weights.ms + weights.ti;
+    document.getElementById('w-process').value = Math.round(weights.pc / total * 100);
+    document.getElementById('w-role').value    = Math.round(weights.rc / total * 100);
+    document.getElementById('w-mindset').value = Math.round(weights.ms / total * 100);
+    document.getElementById('w-tech').value    = Math.round(weights.ti / total * 100);
+    updateWeights();
+    updateAutosaveIndicator(true, parsed.savedAt);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function updateAutosaveIndicator(ok, savedAt) {
+  const dot  = document.getElementById('autosave-dot');
+  const text = document.getElementById('autosave-text');
+  if (!ok) {
+    dot.style.background  = 'var(--red-60)';
+    text.textContent = 'Storage error';
+    return;
+  }
+  dot.style.background = 'var(--green-40)';
+  if (savedAt && savedAt !== true) {
+    const d = new Date(savedAt);
+    const fmt = d.toLocaleDateString(undefined, { day:'2-digit', month:'short' }) + ' ' +
+                d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+    text.textContent = 'Auto-saved · ' + fmt;
+  } else {
+    text.textContent = 'Auto-saved';
+  }
+}
+
+function clearStorage() {
+  if (!confirm('This will remove all saved data from this browser and reload the default examples. Continue?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  masterData = JSON.parse(JSON.stringify(SEED_DATA)).map((d, i) => ({ ...d, id: i + 1 }));
+  nextId = masterData.length + 1;
+  weights.pc = 0.30; weights.rc = 0.30; weights.ms = 0.20; weights.ti = 0.20;
+  document.getElementById('w-process').value = 30;
+  document.getElementById('w-role').value    = 30;
+  document.getElementById('w-mindset').value = 20;
+  document.getElementById('w-tech').value    = 20;
+  updateWeights();
+  recalcAll();
+  navigate('library');
+  const dot  = document.getElementById('autosave-dot');
+  const text = document.getElementById('autosave-text');
+  dot.style.background = 'var(--gray-30)';
+  text.textContent = 'No saved data';
+}
+
+// Patch all data-mutating functions to auto-persist after every change
+const _origRecalcAll = recalcAll;
+recalcAll = function() { _origRecalcAll(); persistToStorage(); };
+
+// ============================================================
+// SESSION BACKUP / RESTORE / EXPORT (manual file operations)
+// ============================================================
+function saveSession() {
+  const data = JSON.stringify({ masterData, nextId, weights, savedAt: new Date().toISOString() });
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hcm_change_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function loadSessionBtn() { document.getElementById('loadFile').click(); }
+
+function loadSession(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      masterData = parsed.masterData;
+      nextId = parsed.nextId;
+      Object.assign(weights, parsed.weights);
+      const total = weights.pc + weights.rc + weights.ms + weights.ti;
+      document.getElementById('w-process').value = Math.round(weights.pc / total * 100);
+      document.getElementById('w-role').value    = Math.round(weights.rc / total * 100);
+      document.getElementById('w-mindset').value = Math.round(weights.ms / total * 100);
+      document.getElementById('w-tech').value    = Math.round(weights.ti / total * 100);
+      updateWeights();
+      recalcAll();
+      navigate('library');
+    } catch(err) { alert('Could not read the backup file. Please check it is a valid session export.'); }
+  };
+  reader.readAsText(file);
+}
+
+function exportSession() {
+  recalcAll();
+  const rows = masterData.map(r => [r.id, r.module, r.process_area, r.change_title, r.current_state, r.future_state, r.emp ? 'Y' : '', r.mgr ? 'Y' : '', r.hr ? 'Y' : '', r.pc, r.rc, r.ms, r.ti, r.impact, r.risk, r.status, r.owner, r.notes].join('\t')).join('\n');
+  const header = 'ID\tModule\tProcess Area\tChange Title\tCurrent State\tFuture State\tEmployee\tManager\tHR\tProcess Change\tRole Change\tMindset Shift\tTech Impact\tImpact Score\tRisk\tStatus\tOwner\tNotes\n';
+  const blob = new Blob([header + rows], { type: 'text/tab-separated-values' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hcm_change_assessment_' + new Date().toISOString().slice(0,10) + '.tsv';
+  a.click();
+}
+
+// ============================================================
+// INIT — load from browser storage if available, else use seeds
+// ============================================================
+const restoredFromStorage = loadFromStorage();
+recalcAll();
+renderLibrary();
+
+if (restoredFromStorage) {
+  // Brief flash to confirm restore
+  const text = document.getElementById('autosave-text');
+  const prev = text.textContent;
+  text.textContent = '✓ Session restored';
+  setTimeout(() => { text.textContent = prev; }, 2500);
+}
+</script>
+</body>
+</html>
